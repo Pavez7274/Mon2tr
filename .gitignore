@@ -1,0 +1,36 @@
+# Rust
+/target
+Cargo.lock
+
+# Bun / Node
+/node_modules
+bun.lockb
+bun.lock
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Bindig & Compiled files
+*.node
+*.so
+*.dll
+*.dylib
+
+# Intermediate build files
+*.tsbuildinfo
+*.log
+
+# This project (especifically)
+mon2tr.node
+mon2tr.d.ts
+package.json
+
+# ENV / IDE
+.env
+.env.*
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
