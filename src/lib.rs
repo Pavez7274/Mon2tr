@@ -1,7 +1,52 @@
-#![feature(new_zeroed_alloc, maybe_uninit_slice)]
+#![feature(maybe_uninit_slice, ptr_metadata, rustc_attrs)]
+#![allow(nonstandard_style, unsafe_op_in_unsafe_fn, internal_features)]
+
+use std::{alloc::*, ptr::null_mut};
+use napi_sys::*;
 
 #[macro_use]
 extern crate napi_derive;
+
+pub mod core;
+pub mod ops;
+
+#[macro_export]
+macro_rules! c_str {
+    ($s:literal) => {{
+        // concat! requires a literal; this produces a &'static str containing the trailing NUL.
+        // yields *const u8; and then cast to *const c_char for C APIs.
+        concat!($s, "\0").as_ptr().cast::<std::ffi::c_char>()
+    }};
+}
+
+#[cold]
+unsafe extern "C" fn no_construct(env: napi_env, _info: napi_callback_info) -> napi_value {
+    napi_throw_error(env, null_mut(), c_str!("This class cannot be instantiated"));
+    std::ptr::null_mut()
+}
+
+struct Mon2trAllocator;
+unsafe impl GlobalAlloc for Mon2trAllocator {
+    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) { System.dealloc(ptr, layout); }
+    unsafe fn alloc  (&self, layout: Layout) -> *mut u8    { System.alloc  (layout)       }
+}
+
+#[global_allocator]
+static __mon2tr_allocator: Mon2trAllocator = Mon2trAllocator;
+
+unsafe extern "Rust" {
+    #[rustc_allocator]
+    #[rustc_std_internal_symbol]
+    fn __rust_alloc(size: usize, align: usize) -> *mut u8;
+
+    #[rustc_deallocator]
+    #[rustc_std_internal_symbol]
+    fn __rust_dealloc(ptr: *mut u8, size: usize, align: usize);
+}
+
+#[repr(transparent)]
+pub struct BruteSend<T>(T);
+unsafe impl<T> Send for BruteSend<T> {}
 
 // use std::io  ::{Read, Write, Result as IoResult};
 // use std::net ::TcpStream;
@@ -10,8 +55,6 @@ extern crate napi_derive;
 // use webpki_roots::TLS_SERVER_ROOTS;
 // use rustls::{ClientConfig, ClientConnection, RootCertStore, Stream};
 // use hpack::{Decoder, Encoder};
-
-pub mod core;
 
 // const ACKNOWLEDGE_SETTINGS_PAYLOAD: [u8; 9] = [ 0, 0, 0, 4, 0, 0, 0, 0, 0 ];
 // const ACKNOWLEDGE_SETTINGS_FRAME  : [u8; 9] = [ 0, 0, 0, 4, 1, 0, 0, 0, 0 ];

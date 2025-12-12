@@ -1,4 +1,4 @@
-#![feature(new_zeroed_alloc, random)]
+#![feature(random)]
 
 use criterion::{Criterion, criterion_group, criterion_main};
 use std::alloc::{alloc, dealloc, Layout};
